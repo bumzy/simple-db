@@ -9,6 +9,11 @@ import java.util.*;
 public class TupleDesc implements Serializable {
 
     /**
+     * Array list of TDItem
+     * */
+    private ArrayList<TDItem> tdItemList;
+
+    /**
      * A help class to facilitate organizing the information of each field
      * */
     public static class TDItem implements Serializable {
@@ -35,8 +40,6 @@ public class TupleDesc implements Serializable {
         }
     }
 
-    private ArrayList<TDItem> tdItemList;
-
     /**
      * @return
      *        An iterator which iterates over all the field TDItems
@@ -59,8 +62,25 @@ public class TupleDesc implements Serializable {
      *            array specifying the names of the fields. Note that names may
      *            be null.
      */
-    public TupleDesc(Type[] typeAr, String[] fieldAr) {
-        // some code goes here
+    public TupleDesc(Type[] typeAr, String[] fieldAr) throws IllegalArgumentException {
+        if (typeAr == null || typeAr.length == 0) {
+            throw new IllegalArgumentException("typeAr is null or empty");
+        }
+        if (fieldAr != null && fieldAr.length != typeAr.length) {
+            throw new IllegalArgumentException("fieldAr.length != typeAr.length");
+        }
+        tdItemList = new ArrayList<TDItem>();
+        for (int i = 0; i < typeAr.length; i++) {
+            Type type = typeAr[i];
+            if (type == null) {
+                throw new IllegalArgumentException("typeAr constains null");
+            }
+            String field = null;
+            if (fieldAr != null) {
+                field = fieldAr[i];
+            }
+            tdItemList.add(new TDItem(type, field));
+        }
     }
 
     /**
@@ -71,16 +91,15 @@ public class TupleDesc implements Serializable {
      *            array specifying the number of and types of fields in this
      *            TupleDesc. It must contain at least one entry.
      */
-    public TupleDesc(Type[] typeAr) {
-        // some code goes here
+    public TupleDesc(Type[] typeAr) throws IllegalArgumentException {
+        this(typeAr, null);
     }
 
     /**
      * @return the number of fields in this TupleDesc
      */
     public int numFields() {
-        // some code goes here
-        return 0;
+        return tdItemList.size();
     }
 
     /**
@@ -93,8 +112,10 @@ public class TupleDesc implements Serializable {
      *             if i is not a valid field reference.
      */
     public String getFieldName(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if (i >= tdItemList.size()) {
+            throw new NoSuchElementException();
+        }
+        return tdItemList.get(i).fieldName;
     }
 
     /**
@@ -108,8 +129,10 @@ public class TupleDesc implements Serializable {
      *             if i is not a valid field reference.
      */
     public Type getFieldType(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if (i >= tdItemList.size()) {
+            throw new NoSuchElementException();
+        }
+        return tdItemList.get(i).fieldType;
     }
 
     /**
@@ -131,8 +154,7 @@ public class TupleDesc implements Serializable {
      *         Note that tuples from a given TupleDesc are of a fixed size.
      */
     public int getSize() {
-        // some code goes here
-        return 0;
+        return tdItemList.size();
     }
 
     /**
@@ -178,7 +200,8 @@ public class TupleDesc implements Serializable {
      * @return String describing this descriptor.
      */
     public String toString() {
-        // some code goes here
-        return "";
+        ArrayList
+        for
+        return String.join(",", );
     }
 }
