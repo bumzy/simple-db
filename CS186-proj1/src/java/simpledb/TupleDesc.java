@@ -203,6 +203,10 @@ public class TupleDesc implements Serializable {
         int size = td1.getSize() + td2.getSize();
         Type[] typeAr = new Type[size];
         String[] fieldAr = new String[size];
+        for (int i = 0; i < size; i++) {
+            typeAr[i] = i < td1.getSize() ? td1.getFieldType(i) : td2.getFieldType(i - td1.getSize());
+            fieldAr[i] = i < td1.getSize() ? td1.getFieldName(i) : td2.getFieldName(i - td1.getSize());
+        }
         return new TupleDesc(typeAr, fieldAr);
     }
 
