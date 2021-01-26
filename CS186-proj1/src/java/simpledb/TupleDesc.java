@@ -14,6 +14,11 @@ public class TupleDesc implements Serializable {
     private ArrayList<TDItem> tdItemList;
 
     /**
+     * Hash Map of fieldName to index
+     * */
+    private HashMap<String, Integer> fieldNameMap;
+
+    /**
      * A help class to facilitate organizing the information of each field
      * */
     public static class TDItem implements Serializable {
@@ -37,6 +42,20 @@ public class TupleDesc implements Serializable {
 
         public String toString() {
             return fieldName + "(" + fieldType + ")";
+        }
+
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof TDItem)) {
+                return false;
+            }
+            TDItem other = (TDItem)o;
+            if (this.fieldType.equals(other.fieldType) && this.fieldName.equals(other.fieldName)) {
+                return true;
+            }
+            return false;
         }
     }
 
@@ -70,6 +89,7 @@ public class TupleDesc implements Serializable {
             throw new IllegalArgumentException("fieldAr.length != typeAr.length");
         }
         tdItemList = new ArrayList<TDItem>();
+        fieldNameMap = new HashMap<String, Integer>();
         for (int i = 0; i < typeAr.length; i++) {
             Type type = typeAr[i];
             if (type == null) {
@@ -78,6 +98,13 @@ public class TupleDesc implements Serializable {
             String field = null;
             if (fieldAr != null) {
                 field = fieldAr[i];
+                if (field != null) {
+                    if (fieldNameMap.containsKey(field)) {
+                        throw new IllegalArgumentException("fieldAr constains duplicate field, field=" + field);
+                    } else {
+                        fieldNameMap.put(field, i);
+                    }
+                }
             }
             tdItemList.add(new TDItem(type, field));
         }
@@ -145,8 +172,13 @@ public class TupleDesc implements Serializable {
      *             if no field with a matching name is found.
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        if (name == null || name.isEmpty()) {
+            throw new NoSuchElementException("field name is null or empty");
+        }
+        if (!fieldNameMap.containsKey(name)) {
+            throw new NoSuchElementException("no matching name, field name=" + name);
+        }
+        return fieldNameMap.get(name);
     }
 
     /**
@@ -168,8 +200,10 @@ public class TupleDesc implements Serializable {
      * @return the new TupleDesc
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
-        // some code goes here
-        return null;
+        int size = td1.getSize() + td2.getSize();
+        Type[] typeAr = new Type[size];
+        String[] fieldAr = new String[size];
+        return new TupleDesc(typeAr, fieldAr);
     }
 
     /**
@@ -182,14 +216,26 @@ public class TupleDesc implements Serializable {
      * @return true if the object is equal to this TupleDesc.
      */
     public boolean equals(Object o) {
-        // some code goes here
-        return false;
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof TupleDesc)) {
+            return false;
+        }
+        TupleDesc other = (TupleDesc)o;
+        if (other.tdItemList.size() != this.tdItemList.size()) {
+            return false;
+        }
+        for (int i = 0; i < other.tdItemList.size(); i++) {
+            if (!other.tdItemList.get(i).equals(this.tdItemList.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int hashCode() {
-        // If you want to use TupleDesc as keys for HashMap, implement this so
-        // that equal objects have equals hashCode() results
-        throw new UnsupportedOperationException("unimplemented");
+        return toString().hashCode();
     }
 
     /**
@@ -200,8 +246,20 @@ public class TupleDesc implements Serializable {
      * @return String describing this descriptor.
      */
     public String toString() {
-        ArrayList
-        for
-        return String.join(",", );
+        String str = "";
+        for (int i = 0; i < tdItemList.size(); i++) {
+            Type fieldType = tdItemList.get(i).fieldType;
+            String fieldName = tdItemList.get(i).fieldName;
+            str = String.format("%s[%d]", fieldType.name(), i);
+            if (fieldName != null) {
+                str += String.format("(%s[%d])", fieldName, i);
+            } else {
+                str += String.format("(null[%d])", i);
+            }
+            if (i + 1 == tdItemList.size()) {
+                str += ",";
+            }
+        }
+        return str;
     }
 }
