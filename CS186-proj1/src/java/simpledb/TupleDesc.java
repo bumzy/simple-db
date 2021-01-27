@@ -52,10 +52,15 @@ public class TupleDesc implements Serializable {
                 return false;
             }
             TDItem other = (TDItem)o;
-            if (this.fieldType.equals(other.fieldType) && this.fieldName.equals(other.fieldName)) {
-                return true;
+            if ((this.fieldType != null && !this.fieldType.equals(other.fieldType))
+                || (other.fieldType != null && !other.fieldType.equals(this.fieldType))) {
+                return false;
             }
-            return false;
+            if ((this.fieldName != null && this.fieldName.equals(other.fieldName))
+                || (other.fieldName != null && other.fieldName.equals(this.fieldName))) {
+                return false;
+            }
+            return true;
         }
     }
 
@@ -99,11 +104,7 @@ public class TupleDesc implements Serializable {
             if (fieldAr != null) {
                 field = fieldAr[i];
                 if (field != null) {
-                    if (fieldNameMap.containsKey(field)) {
-                        throw new IllegalArgumentException("fieldAr constains duplicate field, field=" + field);
-                    } else {
-                        fieldNameMap.put(field, i);
-                    }
+                    fieldNameMap.put(field, i);
                 }
             }
             tdItemList.add(new TDItem(type, field));
@@ -186,7 +187,11 @@ public class TupleDesc implements Serializable {
      *         Note that tuples from a given TupleDesc are of a fixed size.
      */
     public int getSize() {
-        return tdItemList.size();
+        int size = 0;
+        for (TDItem item : tdItemList) {
+            size += item.fieldType.getLen();
+        }
+        return size;
     }
 
     /**
@@ -200,12 +205,12 @@ public class TupleDesc implements Serializable {
      * @return the new TupleDesc
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
-        int size = td1.getSize() + td2.getSize();
+        int size = td1.numFields() + td2.numFields();
         Type[] typeAr = new Type[size];
         String[] fieldAr = new String[size];
         for (int i = 0; i < size; i++) {
-            typeAr[i] = i < td1.getSize() ? td1.getFieldType(i) : td2.getFieldType(i - td1.getSize());
-            fieldAr[i] = i < td1.getSize() ? td1.getFieldName(i) : td2.getFieldName(i - td1.getSize());
+            typeAr[i] = i < td1.numFields() ? td1.getFieldType(i) : td2.getFieldType(i - td1.numFields());
+            fieldAr[i] = i < td1.numFields() ? td1.getFieldName(i) : td2.getFieldName(i - td1.numFields());
         }
         return new TupleDesc(typeAr, fieldAr);
     }
