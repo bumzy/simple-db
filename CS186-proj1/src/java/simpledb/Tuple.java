@@ -22,7 +22,7 @@ public class Tuple implements Serializable {
     /**
      * Array list of TDItem.
      * */
-    private ArrayList<Field> fieldList;
+    private ArrayList<Field> fieldList = null;
 
     /**
      * The RecordId information for this tuple.
