@@ -265,7 +265,7 @@ public class TupleDesc implements Serializable {
             } else {
                 str += String.format("(null[%d])", i);
             }
-            if (i + 1 == tdItemList.size()) {
+            if (i + 1 != tdItemList.size()) {
                 str += ",";
             }
         }
