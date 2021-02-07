@@ -16,12 +16,18 @@ import java.util.*;
 
 public class Catalog {
 
+    private HashMap<String, DbFile> nameDbFileMap;
+    private HashMap<String, String> namePKeyFieldMap;
+    private HashMap<Integer, String> tableIdNameMap;
+
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+        nameDbFileMap = new HashMap<String, DbFile>();
+        namePKeyFieldMap = new HashMap<String, String>();
+        tableIdNameMap = new HashMap<Integer, String>();
     }
 
     /**
@@ -30,11 +36,17 @@ public class Catalog {
      * @param file the contents of the table to add;  file.getId() is the identfier of
      *    this file/tupledesc param for the calls getTupleDesc and getFile
      * @param name the name of the table -- may be an empty string.  May not be null.  If a name
+     *    conflict exists, use the last table to be added as the table for a given name.
      * @param pkeyField the name of the primary key field
-     * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+        if (nameDbFileMap.containsKey(name)) {
+            Integer tableId = nameDbFileMap.get(name).getId();
+            tableIdNameMap.remove(tableId);
+        }
+        tableIdNameMap.put(file.getId(), name);
+        nameDbFileMap.put(name, file);
+        namePKeyFieldMap.put(name, pkeyField);
     }
 
     public void addTable(DbFile file, String name) {
@@ -57,8 +69,13 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        if (name == null || name.isEmpty()) {
+            throw new NoSuchElementException("name is null or empty");
+        }
+        if (!nameDbFileMap.containsKey(name)) {
+            throw new NoSuchElementException(name + " not exist");
+        }
+        return nameDbFileMap.get(name).getId();
     }
 
     /**
@@ -68,8 +85,11 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if (!tableIdNameMap.containsKey(tableid)) {
+            throw new NoSuchElementException("tableid=" + Integer.toString(tableid) + " not exist");
+        }
+        String name = tableIdNameMap.get(tableid);
+        return nameDbFileMap.get(name).getTupleDesc();
     }
 
     /**
@@ -79,30 +99,36 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDbFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if (!tableIdNameMap.containsKey(tableid)) {
+            throw new NoSuchElementException("tableid=" + Integer.toString(tableid) + " not exist");
+        }
+        String name = tableIdNameMap.get(tableid);
+        return nameDbFileMap.get(name);
     }
 
     public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+        if (!tableIdNameMap.containsKey(tableid)) {
+            return null;
+        }
+        String name = tableIdNameMap.get(tableid);
+        return namePKeyFieldMap.get(name);
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // some code goes here
-        return null;
+        return tableIdNameMap.keySet().iterator();
     }
 
     public String getTableName(int id) {
-        // some code goes here
-        return null;
+        return tableIdNameMap.get(id);
     }
-    
+
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
+        tableIdNameMap.clear();
+        nameDbFileMap.clear();
+        namePKeyFieldMap.clear();
     }
-    
+
     /**
      * Reads the schema from a file and creates the appropriate tables in the database.
      * @param catalogFile
@@ -112,7 +138,7 @@ public class Catalog {
         String baseFolder=new File(catalogFile).getParent();
         try {
             BufferedReader br = new BufferedReader(new FileReader(new File(catalogFile)));
-            
+
             while ((line = br.readLine()) != null) {
                 //assume line is of the format name (field type, field type, ...)
                 String name = line.substring(0, line.indexOf("(")).trim();
