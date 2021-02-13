@@ -68,11 +68,11 @@ public class HeapFile implements DbFile {
         byte[] data = new byte[BufferPool.PAGE_SIZE];
         Page page = null;
         try {
-            HeapPageId hpid = (HeapPageId) pid;
-            int offset = hpid.pageNumber() * BufferPool.PAGE_SIZE;
             RandomAccessFile rafile = new RandomAccessFile(this.f, "r");
-            rafile.read(data, offset, BufferPool.PAGE_SIZE);
-            page = new HeapPage(hpid, data);
+            int offset = pid.pageNumber() * BufferPool.PAGE_SIZE;
+            rafile.seek(offset);
+            rafile.read(data, 0, BufferPool.PAGE_SIZE);
+            page = new HeapPage((HeapPageId) pid, data);
         } catch (IOException e) {
             e.printStackTrace();
         }
