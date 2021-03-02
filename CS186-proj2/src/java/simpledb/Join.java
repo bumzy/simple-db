@@ -9,10 +9,13 @@ public class Join extends Operator {
 
     private static final long serialVersionUID = 1L;
 
+    private JoinPredicate p = null;
+    private DbIterator[] children = null;
+    private TupleDesc td = null;
     /**
      * Constructor. Accepts to children to join and the predicate to join them
      * on
-     * 
+     *
      * @param p
      *            The predicate to use to join the children
      * @param child1
@@ -21,12 +24,15 @@ public class Join extends Operator {
      *            Iterator for the right(inner) relation to join
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
-        // some code goes here
+        this.p = p;
+        this.children = new DbIterator[]{child1, child2};
+        TupleDesc td1 = child1.getTupleDesc();
+        TupleDesc td2 = child2.getTupleDesc();
+        this.td = TupleDesc.merge(td1, td2);
     }
 
     public JoinPredicate getJoinPredicate() {
-        // some code goes here
-        return null;
+        return p;
     }
 
     /**
@@ -35,8 +41,9 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField1Name() {
-        // some code goes here
-        return null;
+        TupleDesc td1 = children[0].getTupleDesc();
+        int field1 = p.getField1();
+        return td1.getFieldName(field1);
     }
 
     /**
@@ -45,8 +52,9 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField2Name() {
-        // some code goes here
-        return null;
+        TupleDesc td2 = children[1].getTupleDesc();
+        int field2 = p.getField2();
+        return td2.getFieldName(field2);
     }
 
     /**
@@ -54,21 +62,25 @@ public class Join extends Operator {
      *      implementation logic.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return this.td;
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
+        super.open();
+        children[0].open();
+        children[1].open();
     }
 
     public void close() {
-        // some code goes here
+        children[1].close();
+        children[0].close();
+        super.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        children[0].rewind();
+        children[1].rewind();
     }
 
     /**
@@ -85,24 +97,45 @@ public class Join extends Operator {
      * <p>
      * For example, if one tuple is {1,2,3} and the other tuple is {1,5,6},
      * joined on equality of the first column, then this returns {1,2,3,1,5,6}.
-     * 
+     *
      * @return The next matching tuple.
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
+        DbIterator child1 = children[0];
+        DbIterator child2 = children[1];
+        while (child1.hasNext()) {
+            Tuple t1 = child1.next();
+            child2.rewind();
+            while (child2.hasNext()) {
+                Tuple t2 = child2.next();
+                if (p.filter(t1, t2)) {
+                    Tuple t = new Tuple(this.td);
+                    int k = 0;
+                    for (int i = 0; i < t1.getTupleDesc().numFields(); i++) {
+                        t.setField(k, t1.getField(i));
+                        k++;
+                    }
+                    for (int i = 0; i < t2.getTupleDesc().numFields(); i++) {
+                        t.setField(k, t2.getField(i));
+                        k++;
+                    }
+                    System.out.println("fetchNext tuple=" + t.toString());
+                    return t;
+                }
+            }
+        }
         return null;
     }
 
     @Override
     public DbIterator[] getChildren() {
-        // some code goes here
-        return null;
+        return children;
     }
 
     @Override
     public void setChildren(DbIterator[] children) {
-        // some code goes here
+        this.children = children;
     }
 
 }

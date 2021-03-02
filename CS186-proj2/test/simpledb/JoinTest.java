@@ -5,10 +5,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import junit.framework.JUnit4TestAdapter;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import simpledb.systemtest.SimpleDbTestBase;
+import java.io.*;
 
 public class JoinTest extends SimpleDbTestBase {
 
@@ -18,6 +20,20 @@ public class JoinTest extends SimpleDbTestBase {
   DbIterator scan2;
   DbIterator eqJoin;
   DbIterator gtJoin;
+
+  private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+  private final PrintStream originalOut = System.out;
+
+
+  @Before
+  public void setUp() {
+    System.setOut(new PrintStream(outContent));
+  }
+
+  @After
+  public void restoreStreams() {
+    System.setOut(originalOut);
+  }
 
   /**
    * Initialize each unit test
@@ -87,6 +103,7 @@ public class JoinTest extends SimpleDbTestBase {
    * Unit test for Join.getNext() using a &gt; predicate
    */
   @Test public void gtJoin() throws Exception {
+    System.out.println("====== gtJoin");
     JoinPredicate pred = new JoinPredicate(0, Predicate.Op.GREATER_THAN, 0);
     Join op = new Join(pred, scan1, scan2);
     op.open();
@@ -98,6 +115,7 @@ public class JoinTest extends SimpleDbTestBase {
    * Unit test for Join.getNext() using an = predicate
    */
   @Test public void eqJoin() throws Exception {
+    System.out.println("====== eqJoin");
     JoinPredicate pred = new JoinPredicate(0, Predicate.Op.EQUALS, 0);
     Join op = new Join(pred, scan1, scan2);
     op.open();
