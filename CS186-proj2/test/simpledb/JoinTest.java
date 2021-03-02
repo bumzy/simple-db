@@ -5,12 +5,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import junit.framework.JUnit4TestAdapter;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import simpledb.systemtest.SimpleDbTestBase;
-import java.io.*;
 
 public class JoinTest extends SimpleDbTestBase {
 
@@ -21,19 +19,6 @@ public class JoinTest extends SimpleDbTestBase {
   DbIterator eqJoin;
   DbIterator gtJoin;
 
-  private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-  private final PrintStream originalOut = System.out;
-
-
-  @Before
-  public void setUp() {
-    System.setOut(new PrintStream(outContent));
-  }
-
-  @After
-  public void restoreStreams() {
-    System.setOut(originalOut);
-  }
 
   /**
    * Initialize each unit test
@@ -107,6 +92,16 @@ public class JoinTest extends SimpleDbTestBase {
     JoinPredicate pred = new JoinPredicate(0, Predicate.Op.GREATER_THAN, 0);
     Join op = new Join(pred, scan1, scan2);
     op.open();
+    while (op.hasNext()) {
+        Tuple t = op.next();
+        System.out.print("====== gtJoin op.tuple=" + t.toString());
+    }
+    op.open();
+    gtJoin.open();
+    while (gtJoin.hasNext()) {
+        Tuple t = gtJoin.next();
+        System.out.print("====== gtJoin gtJoin.tuple=" + t.toString());
+    }
     gtJoin.open();
     TestUtil.matchAllTuples(gtJoin, op);
   }
@@ -119,7 +114,15 @@ public class JoinTest extends SimpleDbTestBase {
     JoinPredicate pred = new JoinPredicate(0, Predicate.Op.EQUALS, 0);
     Join op = new Join(pred, scan1, scan2);
     op.open();
+    // while (op.hasNext()) {
+    //     Tuple t = op.next();
+    //     System.out.print("====== eqJoion op.tuple=" + t.toString());
+    // }
     eqJoin.open();
+    // while (eqJoin.hasNext()) {
+    //     Tuple t = eqJoin.next();
+    //     System.out.print("====== eqJoion eqJoin.tuple=" + t.toString());
+    // }
     TestUtil.matchAllTuples(eqJoin, op);
   }
 

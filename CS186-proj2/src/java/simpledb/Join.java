@@ -12,6 +12,7 @@ public class Join extends Operator {
     private JoinPredicate p = null;
     private DbIterator[] children = null;
     private TupleDesc td = null;
+    private Tuple cur = null;
     /**
      * Constructor. Accepts to children to join and the predicate to join them
      * on
@@ -79,8 +80,8 @@ public class Join extends Operator {
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        children[0].rewind();
         children[1].rewind();
+        children[0].rewind();
     }
 
     /**
@@ -104,11 +105,20 @@ public class Join extends Operator {
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         DbIterator child1 = children[0];
         DbIterator child2 = children[1];
-        while (child1.hasNext()) {
-            Tuple t1 = child1.next();
-            child2.rewind();
+        while (cur != null || child1.hasNext()) {
+            Tuple t1 = null;
+            if (cur != null) {
+                t1 = cur;
+                cur = null;
+            } else {
+                t1 = child1.next();
+                cur = t1;
+                child2.rewind();
+            }
+            System.out.print("fetchNext t1=" + t1.toString());
             while (child2.hasNext()) {
                 Tuple t2 = child2.next();
+                System.out.print("fetchNext t2=" + t2.toString());
                 if (p.filter(t1, t2)) {
                     Tuple t = new Tuple(this.td);
                     int k = 0;
@@ -120,10 +130,11 @@ public class Join extends Operator {
                         t.setField(k, t2.getField(i));
                         k++;
                     }
-                    System.out.println("fetchNext tuple=" + t.toString());
+                    System.out.print("fetchNext tuple=" + t.toString());
                     return t;
                 }
             }
+            cur = null;
         }
         return null;
     }
