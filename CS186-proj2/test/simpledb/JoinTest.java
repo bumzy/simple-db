@@ -88,20 +88,10 @@ public class JoinTest extends SimpleDbTestBase {
    * Unit test for Join.getNext() using a &gt; predicate
    */
   @Test public void gtJoin() throws Exception {
-    System.out.println("====== gtJoin");
     JoinPredicate pred = new JoinPredicate(0, Predicate.Op.GREATER_THAN, 0);
     Join op = new Join(pred, scan1, scan2);
     op.open();
-    while (op.hasNext()) {
-        Tuple t = op.next();
-        System.out.print("====== gtJoin op.tuple=" + t.toString());
-    }
-    op.open();
     gtJoin.open();
-    while (gtJoin.hasNext()) {
-        Tuple t = gtJoin.next();
-        System.out.print("====== gtJoin gtJoin.tuple=" + t.toString());
-    }
     gtJoin.open();
     TestUtil.matchAllTuples(gtJoin, op);
   }
@@ -110,19 +100,10 @@ public class JoinTest extends SimpleDbTestBase {
    * Unit test for Join.getNext() using an = predicate
    */
   @Test public void eqJoin() throws Exception {
-    System.out.println("====== eqJoin");
     JoinPredicate pred = new JoinPredicate(0, Predicate.Op.EQUALS, 0);
     Join op = new Join(pred, scan1, scan2);
     op.open();
-    // while (op.hasNext()) {
-    //     Tuple t = op.next();
-    //     System.out.print("====== eqJoion op.tuple=" + t.toString());
-    // }
     eqJoin.open();
-    // while (eqJoin.hasNext()) {
-    //     Tuple t = eqJoin.next();
-    //     System.out.print("====== eqJoion eqJoin.tuple=" + t.toString());
-    // }
     TestUtil.matchAllTuples(eqJoin, op);
   }
 
