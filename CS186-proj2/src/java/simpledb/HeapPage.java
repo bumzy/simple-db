@@ -228,8 +228,16 @@ public class HeapPage implements Page {
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        for (int i = 0; i < tuples.length; i++) {
+            if (t.getRecordId().equals(tuples[i].getRecordId())) {
+                if (!isSlotUsed(i)) {
+                    throw DbException("tuple slot is already empty");
+                }
+                markSlotUsed(i, false);
+                return;
+            }
+        }
+        throw DbException("tuple is not on this page");
     }
 
     /**
@@ -291,8 +299,13 @@ public class HeapPage implements Page {
      * Abstraction to fill or clear a slot on this page.
      */
     private void markSlotUsed(int i, boolean value) {
-        // some code goes here
-        // not necessary for lab1
+        int j = i / 8;
+        int k = i % 8;
+        if (value) {
+            header[j] |= (0x1 << k);
+        } else {
+            header[j] &= ~(0x1 << k);
+        }
     }
 
     /**
