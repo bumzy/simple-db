@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * HeapFile is an implementation of a DbFile that stores a collection of tuples
@@ -18,6 +19,7 @@ public class HeapFile implements DbFile {
     private File f = null;
     private TupleDesc td = null;
     private int numPages = 0;
+    private ReentrantReadWriteLock[] rwlocks = null;
 
     /**
      * Constructs a heap file backed by the specified file.
@@ -30,6 +32,10 @@ public class HeapFile implements DbFile {
         this.f = f;
         this.td = td;
         this.numPages = (int)Math.ceil(1.0 * f.length() / BufferPool.PAGE_SIZE);
+        this.rwlocks = new ReentrantReadWriteLock[this.numPages];
+        for (int i = 0; i < this.numPages; i++) {
+            this.rwlocks[i] = new ReentrantReadWriteLock(true);
+        }
     }
 
     /**
@@ -73,6 +79,7 @@ public class HeapFile implements DbFile {
             rafile.seek(offset);
             rafile.read(data, 0, BufferPool.PAGE_SIZE);
             page = new HeapPage((HeapPageId) pid, data);
+            rafile.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -103,9 +110,10 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for proj1
+        BufferPool bufferPool = Database.getBufferPool();
+        HeapPage page = (HeapPage) bufferPool.getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
+        page.deleteTuple(t);
+        return page;
     }
 
     // see DbFile.java for javadocs
