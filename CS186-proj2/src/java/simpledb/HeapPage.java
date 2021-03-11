@@ -248,8 +248,20 @@ public class HeapPage implements Page {
      * @param t The tuple to add.
      */
     public void insertTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        if (getNumEmptySlots() == 0) {
+            throw new DbException("page is full");
+        }
+        if (!t.getTupleDesc().equals(td)) {
+            throw new DbException("tupledesc is mismatch");
+        }
+        for (int i = 0; i < numSlots; i++) {
+            if (!isSlotUsed(i)) {
+                RecordId rid = new RecordId(pid, i);
+                t.setRecordId(rid);
+                tuples[i] = t;
+                markSlotUsed(i, true);
+            }
+        }
     }
 
     /**

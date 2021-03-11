@@ -2,7 +2,7 @@ package simpledb;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.*;
 
 /**
  * HeapFile is an implementation of a DbFile that stores a collection of tuples
@@ -19,7 +19,7 @@ public class HeapFile implements DbFile {
     private File f = null;
     private TupleDesc td = null;
     private int numPages = 0;
-    private ReentrantReadWriteLock[] rwlocks = null;
+    private ArrayList<ReentrantReadWriteLock> rwLocks = null;
 
     /**
      * Constructs a heap file backed by the specified file.
@@ -32,9 +32,9 @@ public class HeapFile implements DbFile {
         this.f = f;
         this.td = td;
         this.numPages = (int)Math.ceil(1.0 * f.length() / BufferPool.PAGE_SIZE);
-        this.rwlocks = new ReentrantReadWriteLock[this.numPages];
+        this.rwLocks = new ArrayList<ReentrantReadWriteLock>();
         for (int i = 0; i < this.numPages; i++) {
-            this.rwlocks[i] = new ReentrantReadWriteLock(true);
+            this.rwLocks.add(new ReentrantReadWriteLock(true));
         }
     }
 
@@ -102,18 +102,53 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for proj1
+        BufferPool bufferPool = Database.getBufferPool();
+        for (int i = 0; i < numPages; i++) {
+            HeapPageId pid = new HeapPageId(getId(), i);
+            Lock wLock = rwLocks.get(i).writeLock();
+            try {
+                HeapPage page = (HeapPage) bufferPool.getPage(tid, pid, Permissions.READ_WRITE);
+                if (page.getNumEmptySlots() > 0) {
+                    page.insertTuple(t);
+                    ArrayList<Page> pages = new ArrayList<Page>();
+                    pages.add(page);
+                    return pages;
+                }
+            } finally {
+                wLock.unlock();
+            }
+        }
+        int numPage = numPages;
+        ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+        Lock wLock = rwLock.writeLock();
+        try {
+            HeapPageId pid = new HeapPageId(getId(), numPage);
+            HeapPage page = new HeapPage(pid, HeapPage.createEmptyPageData());
+            page.insertTuple(t);
+            rwLocks.add(rwLock);
+            numPages += 1;
+            ArrayList<Page> pages = new ArrayList<Page>();
+            pages.add(page);
+            return pages;
+        } finally {
+            wLock.unlock();
+        }
     }
 
     // see DbFile.java for javadocs
     public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        BufferPool bufferPool = Database.getBufferPool();
-        HeapPage page = (HeapPage) bufferPool.getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
-        page.deleteTuple(t);
-        return page;
+        PageId pid = t.getRecordId().getPageId();
+        int pageNumber = pid.pageNumber();
+        Lock wLock = rwLocks.get(pageNumber).writeLock();
+        try {
+            BufferPool bufferPool = Database.getBufferPool();
+            HeapPage page = (HeapPage) bufferPool.getPage(tid, pid, Permissions.READ_WRITE);
+            page.deleteTuple(t);
+            return page;
+        } finally {
+            wLock.unlock();
+        }
     }
 
     // see DbFile.java for javadocs
