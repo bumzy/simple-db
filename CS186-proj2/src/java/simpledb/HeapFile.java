@@ -20,6 +20,7 @@ public class HeapFile implements DbFile {
     private TupleDesc td = null;
     private int numPages = 0;
     private ArrayList<ReentrantReadWriteLock> rwLocks = null;
+    private ReentrantReadWriteLock fLock = null;
 
     /**
      * Constructs a heap file backed by the specified file.
@@ -36,6 +37,7 @@ public class HeapFile implements DbFile {
         for (int i = 0; i < this.numPages; i++) {
             this.rwLocks.add(new ReentrantReadWriteLock(true));
         }
+        this.fLock = new ReentrantReadWriteLock(true);
     }
 
     /**
@@ -88,8 +90,15 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
-        // some code goes here
-        // not necessary for proj1
+        try {
+            RandomAccessFile rafile = new RandomAccessFile(this.f, "rw");
+            int offset = page.getId().pageNumber() * BufferPool.PAGE_SIZE;
+            rafile.seek(offset);
+            rafile.write(page.getPageData(), 0, BufferPool.PAGE_SIZE);
+            rafile.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -103,14 +112,16 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         BufferPool bufferPool = Database.getBufferPool();
+        ArrayList<Page> pages = new ArrayList<Page>();
         for (int i = 0; i < numPages; i++) {
             HeapPageId pid = new HeapPageId(getId(), i);
             Lock wLock = rwLocks.get(i).writeLock();
             try {
+                wLock.lock();
                 HeapPage page = (HeapPage) bufferPool.getPage(tid, pid, Permissions.READ_WRITE);
                 if (page.getNumEmptySlots() > 0) {
                     page.insertTuple(t);
-                    ArrayList<Page> pages = new ArrayList<Page>();
+                    page.markDirty(true, tid);
                     pages.add(page);
                     return pages;
                 }
@@ -119,15 +130,17 @@ public class HeapFile implements DbFile {
             }
         }
         int numPage = numPages;
-        ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
-        Lock wLock = rwLock.writeLock();
+        Lock wLock = fLock.writeLock();
         try {
+            wLock.lock();
             HeapPageId pid = new HeapPageId(getId(), numPage);
-            HeapPage page = new HeapPage(pid, HeapPage.createEmptyPageData());
-            page.insertTuple(t);
-            rwLocks.add(rwLock);
+            HeapPage emptyPage = new HeapPage(pid, HeapPage.createEmptyPageData());
             numPages += 1;
-            ArrayList<Page> pages = new ArrayList<Page>();
+            writePage(emptyPage);
+            HeapPage page = (HeapPage) bufferPool.getPage(tid, pid, Permissions.READ_WRITE);
+            page.insertTuple(t);
+            page.markDirty(true, tid);
+            rwLocks.add(new ReentrantReadWriteLock(true));
             pages.add(page);
             return pages;
         } finally {
@@ -142,9 +155,11 @@ public class HeapFile implements DbFile {
         int pageNumber = pid.pageNumber();
         Lock wLock = rwLocks.get(pageNumber).writeLock();
         try {
+            wLock.lock();
             BufferPool bufferPool = Database.getBufferPool();
             HeapPage page = (HeapPage) bufferPool.getPage(tid, pid, Permissions.READ_WRITE);
             page.deleteTuple(t);
+            page.markDirty(true, tid);
             return page;
         } finally {
             wLock.unlock();
