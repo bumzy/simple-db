@@ -69,15 +69,15 @@ public class Join extends Operator {
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        super.open();
         children[0].open();
         children[1].open();
+        super.open();
     }
 
     public void close() {
+        super.close();
         children[1].close();
         children[0].close();
-        super.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
