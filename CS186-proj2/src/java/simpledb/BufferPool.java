@@ -23,7 +23,7 @@ public class BufferPool {
     public static final int DEFAULT_PAGES = 50;
 
     private int numPages = -1;
-    private HashMap<PageId, Page> idPageMap = null;
+    private LRUCache<PageId, Page> LRUPagesPool = null;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -32,7 +32,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        this.idPageMap = new HashMap<PageId, Page>();
+        this.LRUPagesPool = new LRUCache<PageId, Page>(numPages);
     }
 
     /**
@@ -52,14 +52,14 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        if (idPageMap.containsKey(pid)) {
-            return idPageMap.get(pid);
+        if (LRUPagesPool.containsKey(pid)) {
+            return LRUPagesPool.get(pid);
         } else {
-            if (idPageMap.size() >= numPages) {
+            if (LRUPagesPool.size() >= numPages) {
                 throw new DbException("BufferPool is full, numPages=" + numPages);
             }
             Page page = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
-            idPageMap.put(pid, page);
+            LRUPagesPool.put(pid, page);
             return page;
         }
     }
