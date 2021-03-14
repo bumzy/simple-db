@@ -55,9 +55,6 @@ public class BufferPool {
         if (LRUPagesPool.containsKey(pid)) {
             return LRUPagesPool.get(pid);
         } else {
-            if (LRUPagesPool.size() >= numPages) {
-                throw new DbException("BufferPool is full, numPages=" + numPages);
-            }
             Page page = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
             LRUPagesPool.put(pid, page);
             return page;
@@ -159,9 +156,9 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        // some code goes here
-        // not necessary for proj1
-
+        for (PageId pid : LRUPagesPool.keySet()) {
+            this.flushPage(pid);
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -179,8 +176,14 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for proj1
+        if (!LRUPagesPool.containsKey(pid)) {
+            throw new IOException("page not in memmery, pid=" + pid.toString());
+        }
+        Page page = LRUPagesPool.get(pid);
+        if (page.isDirty() != null) {
+            DbFile file = Database.getCatalog().getDbFile(pid.getTableId());
+            file.writePage(page);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.

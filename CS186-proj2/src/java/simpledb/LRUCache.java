@@ -1,7 +1,6 @@
 package simpledb;
 
-import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.*;
 
 public class LRUCache<Key, Value> {
 
@@ -23,6 +22,18 @@ public class LRUCache<Key, Value> {
 
     public int size() {
         return this.map.size();
+    }
+
+    public java.util.Set<Key> keySet() {
+        return this.map.keySet();
+    }
+
+    public  java.util.Collection<Value> values() {
+      return this.map.values();
+    }
+
+    public  java.util.Set<java.util.Map.Entry<Key, Value>> entrySet() {
+      return this.map.entrySet();
     }
 
     public void put(Key key, Value value) {
