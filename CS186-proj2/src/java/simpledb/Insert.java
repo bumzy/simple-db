@@ -14,13 +14,11 @@ public class Insert extends Operator {
     private DbIterator child = null;
     private TupleDesc td = null;
     private int tableId = 0;
-    private int insertedNum = 0;
-    private TupleDesc intTd = null;
 
     /**
      * Constructor.
      *
-     * @param t
+     * @param tid
      *            The transaction running the insert.
      * @param child
      *            The child operator from which to read tuples to be inserted.
@@ -34,11 +32,9 @@ public class Insert extends Operator {
             throws DbException {
         this.tid = tid;
         this.child = child;
-        this.td = child.getTupleDesc();
         this.tableId = tableId;
-        this.insertedNum = 0;
         Type[] typeAr = new Type[]{Type.INT_TYPE};
-        this.intTd = new TupleDesc(typeAr);
+        this.td = new TupleDesc(typeAr);
     }
 
     public TupleDesc getTupleDesc() {
@@ -46,7 +42,6 @@ public class Insert extends Operator {
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        this.insertedNum = 0;
         child.open();
         super.open();
     }
@@ -54,12 +49,10 @@ public class Insert extends Operator {
     public void close() {
         super.close();
         child.close();
-        this.insertedNum = 0;
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         child.rewind();
-        this.insertedNum = 0;
     }
 
     /**
@@ -76,19 +69,19 @@ public class Insert extends Operator {
      * @see BufferPool#insertTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
+        int insertedNum = 0;
         while (child.hasNext()) {
             Tuple t = child.next();
             try {
                 Database.getBufferPool().insertTuple(this.tid, this.tableId, t);
-                this.insertedNum += 1;
-                Tuple result = new Tuple(this.intTd);
-                result.setField(0, new IntField(this.insertedNum));
-                return result;
+                insertedNum += 1;
             } catch (IOException e) {
                 throw new DbException(e.toString());
             }
         }
-        return null;
+        Tuple result = new Tuple(this.td);
+        result.setField(0, new IntField(insertedNum));
+        return result;
     }
 
     @Override
