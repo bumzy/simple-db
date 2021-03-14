@@ -259,14 +259,14 @@ public class TupleDesc implements Serializable {
         for (int i = 0; i < tdItemList.size(); i++) {
             Type fieldType = tdItemList.get(i).fieldType;
             String fieldName = tdItemList.get(i).fieldName;
-            str = String.format("%s[%d]", fieldType.name(), i);
+            str += String.format("%s", fieldType.name());
             if (fieldName != null) {
-                str += String.format("(%s[%d])", fieldName, i);
+                str += String.format("(%s)", fieldName);
             } else {
-                str += String.format("(null[%d])", i);
+                str += "()";
             }
             if (i + 1 != tdItemList.size()) {
-                str += ",";
+                str += ", ";
             }
         }
         return str;

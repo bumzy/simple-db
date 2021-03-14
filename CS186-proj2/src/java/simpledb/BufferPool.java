@@ -156,8 +156,12 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        for (PageId pid : LRUPagesPool.keySet()) {
-            this.flushPage(pid);
+        for (Page page : LRUPagesPool.values()) {
+            if (page.isDirty() != null) {
+                DbFile file = Database.getCatalog().getDbFile(page.getId().getTableId());
+                file.writePage(page);
+                page.markDirty(false, null);
+            }
         }
     }
 
@@ -183,6 +187,7 @@ public class BufferPool {
         if (page.isDirty() != null) {
             DbFile file = Database.getCatalog().getDbFile(pid.getTableId());
             file.writePage(page);
+            page.markDirty(false, null);
         }
     }
 

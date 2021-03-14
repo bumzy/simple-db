@@ -14,6 +14,8 @@ public class Insert extends Operator {
     private DbIterator child = null;
     private TupleDesc td = null;
     private int tableId = 0;
+    private int count = 0;
+    private boolean hasAccessed = false;
 
     /**
      * Constructor.
@@ -35,6 +37,8 @@ public class Insert extends Operator {
         this.tableId = tableId;
         Type[] typeAr = new Type[]{Type.INT_TYPE};
         this.td = new TupleDesc(typeAr);
+        this.count = 0;
+        this.hasAccessed = false;
     }
 
     public TupleDesc getTupleDesc() {
@@ -44,6 +48,17 @@ public class Insert extends Operator {
     public void open() throws DbException, TransactionAbortedException {
         child.open();
         super.open();
+        count = 0;
+        hasAccessed = false;
+        while (child.hasNext()) {
+            Tuple t = child.next();
+            try {
+                Database.getBufferPool().insertTuple(this.tid, this.tableId, t);
+                count += 1;
+            } catch (IOException e) {
+                throw new DbException(e.toString());
+            }
+        }
     }
 
     public void close() {
@@ -69,18 +84,12 @@ public class Insert extends Operator {
      * @see BufferPool#insertTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        int insertedNum = 0;
-        while (child.hasNext()) {
-            Tuple t = child.next();
-            try {
-                Database.getBufferPool().insertTuple(this.tid, this.tableId, t);
-                insertedNum += 1;
-            } catch (IOException e) {
-                throw new DbException(e.toString());
-            }
+        if (hasAccessed) {
+            return null;
         }
+        hasAccessed = true;
         Tuple result = new Tuple(this.td);
-        result.setField(0, new IntField(insertedNum));
+        result.setField(0, new IntField(count));
         return result;
     }
 

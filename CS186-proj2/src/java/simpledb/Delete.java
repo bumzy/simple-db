@@ -11,6 +11,8 @@ public class Delete extends Operator {
     private TransactionId tid = null;
     private DbIterator child = null;
     private TupleDesc td = null;
+    private int count = 0;
+    private boolean hasAccessed = false;
 
     /**
      * Constructor specifying the transaction that this delete belongs to as
@@ -26,6 +28,8 @@ public class Delete extends Operator {
         this.child = child;
         Type[] typeAr = new Type[]{Type.INT_TYPE};
         this.td = new TupleDesc(typeAr);
+        this.count = 0;
+        this.hasAccessed = false;
     }
 
     public TupleDesc getTupleDesc() {
@@ -35,6 +39,13 @@ public class Delete extends Operator {
     public void open() throws DbException, TransactionAbortedException {
         child.open();
         super.open();
+        count = 0;
+        hasAccessed = false;
+        while (child.hasNext()) {
+            Tuple t = child.next();
+            Database.getBufferPool().deleteTuple(this.tid, t);
+            count += 1;
+        }
     }
 
     public void close() {
@@ -56,14 +67,12 @@ public class Delete extends Operator {
      * @see BufferPool#deleteTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        int deletedNum = 0;
-        while (child.hasNext()) {
-            Tuple t = child.next();
-            Database.getBufferPool().deleteTuple(this.tid, t);
-            deletedNum += 1;
+        if (hasAccessed) {
+            return null;
         }
+        hasAccessed = true;
         Tuple result = new Tuple(this.td);
-        result.setField(0, new IntField(deletedNum));
+        result.setField(0, new IntField(count));
         return result;
     }
 
