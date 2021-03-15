@@ -17,6 +17,7 @@ public class SeqScan implements DbIterator {
     private int tableid = 0;
     private String tableAlias = null;
     private DbFileIterator dbFileIterator = null;
+    private TupleDesc td = null;
 
     /**
      * Creates a sequential scan over the specified table as a part of the
@@ -36,9 +37,7 @@ public class SeqScan implements DbIterator {
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
         this.tid = tid;
-        this.tableid = tableid;
-        this.tableAlias = tableAlias;
-        dbFileIterator = Database.getCatalog().getDbFile(tableid).iterator(tid);
+        reset(tableid, tableAlias);
     }
 
     /**
@@ -72,7 +71,23 @@ public class SeqScan implements DbIterator {
     public void reset(int tableid, String tableAlias) {
         this.tableid = tableid;
         this.tableAlias = tableAlias;
-        dbFileIterator = Database.getCatalog().getDbFile(tableid).iterator(tid);
+        this.dbFileIterator = Database.getCatalog().getDbFile(tableid).iterator(tid);
+        TupleDesc oldTd = Database.getCatalog().getTupleDesc(tableid);
+        int numFields = oldTd.numFields();
+        Type[] typeAr = new Type[numFields];
+        String[] fieldAr = new String[numFields];
+        if (tableAlias == null) {
+            tableAlias = "null";
+        }
+        for (int i = 0; i < numFields; i++) {
+            typeAr[i] = oldTd.getFieldType(i);
+            String field = oldTd.getFieldName(i);
+            if (field == null) {
+                field = "null";
+            }
+            fieldAr[i] = tableAlias + "." + field;
+        }
+        this.td = new TupleDesc(typeAr, fieldAr);
     }
 
     public SeqScan(TransactionId tid, int tableid) {
@@ -93,7 +108,7 @@ public class SeqScan implements DbIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        return Database.getCatalog().getTupleDesc(tableid);
+        return this.td;
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
@@ -102,7 +117,16 @@ public class SeqScan implements DbIterator {
 
     public Tuple next() throws NoSuchElementException,
             TransactionAbortedException, DbException {
-        return dbFileIterator.next();
+        Tuple oldTuple = dbFileIterator.next();
+        if (oldTuple == null) {
+            return null;
+        }
+        Tuple result = new Tuple(this.td);
+        result.setRecordId(oldTuple.getRecordId());
+        for (int i = 0; i < oldTuple.getTupleDesc().numFields(); i++) {
+            result.setField(i, oldTuple.getField(i));
+        }
+        return result;
     }
 
     public void close() {

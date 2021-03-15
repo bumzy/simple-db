@@ -176,10 +176,6 @@ public class TupleDesc implements Serializable {
         if (name == null || name.isEmpty()) {
             throw new NoSuchElementException("field name is null or empty");
         }
-        int pos = name.indexOf(".");
-        if (pos >= 0) {
-            name = name.substring(pos + 1);
-        }
         if (!fieldNameMap.containsKey(name)) {
             throw new NoSuchElementException("no matching name, field name=" + name);
         }
