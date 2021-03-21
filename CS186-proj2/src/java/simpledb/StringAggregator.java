@@ -24,21 +24,26 @@ public class StringAggregator implements Aggregator {
      * @throws IllegalArgumentException if what != COUNT
      */
 
-    public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) throws IllegalArgumentException {
+    public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what, TupleDesc td) throws IllegalArgumentException {
         if (!what.equals(Op.COUNT)) {
             throw new IllegalArgumentException("what is not Op.COUNT");
         }
         this.gbfield = gbfield;
         this.afield = afield;
         this.op = what;
+        this.td = td;
         if (gbfield == Aggregator.NO_GROUPING) {
-            Type[] typeAr = new Type[]{Type.INT_TYPE};
-            this.td = new TupleDesc(typeAr, null);
             this.allCount = 0;
+            if (this.td == null) {
+                Type[] typeAr = new Type[]{Type.INT_TYPE};
+                this.td = new TupleDesc(typeAr, null);
+            }
         } else {
-            Type[] typeAr = new Type[]{gbfieldtype, Type.INT_TYPE};
-            this.td = new TupleDesc(typeAr, null);
             this.countMap = new HashMap<Field, Integer>();
+            if (this.td == null) {
+                Type[] typeAr = new Type[]{gbfieldtype, Type.INT_TYPE};
+                this.td = new TupleDesc(typeAr, null);
+            }
         }
     }
 
@@ -85,5 +90,4 @@ public class StringAggregator implements Aggregator {
         }
         return new TupleIterator(td, tuples);
     }
-
 }

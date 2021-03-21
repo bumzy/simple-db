@@ -30,18 +30,23 @@ public class IntegerAggregator implements Aggregator {
      *            the aggregation operator
      */
 
-    public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
+    public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what, TupleDesc td) {
         this.gbfield = gbfield;
         this.afield = afield;
         this.op = what;
+        this.td = td;
         if (gbfield == Aggregator.NO_GROUPING) {
-            Type[] typeAr = new Type[]{Type.INT_TYPE};
-            this.td = new TupleDesc(typeAr, null);
             this.opMap = newOpMap();
+            if (this.td == null) {
+                Type[] typeAr = new Type[]{Type.INT_TYPE};
+                this.td = new TupleDesc(typeAr, null);
+            }
         } else {
-            Type[] typeAr = new Type[]{gbfieldtype, Type.INT_TYPE};
-            this.td = new TupleDesc(typeAr, null);
             this.gbMap = new HashMap<Field, HashMap<Op, Integer>>();
+            if (this.td == null) {
+                Type[] typeAr = new Type[]{gbfieldtype, Type.INT_TYPE};
+                this.td = new TupleDesc(typeAr, null);
+            }
         }
     }
 
@@ -129,5 +134,4 @@ public class IntegerAggregator implements Aggregator {
         opMap.put(Op.MAX, value > max ? value : max);
         opMap.put(Op.SUM, sum + value);
     }
-
 }

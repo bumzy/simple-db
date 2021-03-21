@@ -555,6 +555,7 @@ public class Parser {
                         throw new ParsingException((Exception) a);
                     if (a instanceof Zql.TokenMgrError)
                         throw (Zql.TokenMgrError) a;
+                    a.printStackTrace();
                     throw new DbException(a.getMessage());
                 } finally {
                     if (!inUserTrans)
@@ -697,7 +698,7 @@ public class Parser {
 
 class TupleArrayIterator implements DbIterator {
     /**
-	 * 
+	 *
 	 */
     private static final long serialVersionUID = 1L;
     ArrayList<Tuple> tups;
@@ -719,7 +720,7 @@ class TupleArrayIterator implements DbIterator {
     /**
      * Gets the next tuple from the operator (typically implementing by reading
      * from a child operator or an access method).
-     * 
+     *
      * @return The next tuple in the iterator, or null if there are no more
      *         tuples.
      */
@@ -730,7 +731,7 @@ class TupleArrayIterator implements DbIterator {
 
     /**
      * Resets the iterator to the start.
-     * 
+     *
      * @throws DbException
      *             When rewind is unsupported.
      */
