@@ -1,12 +1,17 @@
 package simpledb;
 
+import java.lang.*;
+
 /** A class to represent a fixed-width histogram over a single integer-based field.
  */
 public class IntHistogram {
 
     private int buckets = 0;
+    private long histogram[] = null;
     private int min = Integer.MAX_VALUE;
     private int max = Integer.MIN_VALUE;
+    private int width = 0;
+    private long ntups = 0;
 
     /**
      * Create a new IntHistogram.
@@ -25,9 +30,19 @@ public class IntHistogram {
      * @param max The maximum integer value that will ever be passed to this class for histogramming
      */
     public IntHistogram(int buckets, int min, int max) {
-    	this.buckets = buckets;
+        this.buckets = buckets;
+    	this.histogram = new long[this.buckets];
         this.min = min;
         this.max = max;
+        this.width = (int) Math.ceil((double)(max - min + 1) / this.buckets);
+    }
+
+    private int valueToIndex(int v) {
+        if (v == this.max) {
+            return this.buckets - 1;
+        } else {
+            return (v - this.min) / this.width;
+        }
     }
 
     /**
@@ -35,7 +50,9 @@ public class IntHistogram {
      * @param v Value to add to the histogram
      */
     public void addValue(int v) {
-    	// some code goes here
+        int i = this.valueToIndex(v);
+        this.histogram[i] += 1;
+        this.ntups += 1;
     }
 
     /**
@@ -49,9 +66,43 @@ public class IntHistogram {
      * @return Predicted selectivity of this particular operator and value
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
-
-    	// some code goes here
-        return -1.0;
+        int i = this.valueToIndex(v);
+        int left = i * width + min;
+        int right = left + width - 1;
+        switch (op) {
+            case EQUALS:
+                if (v > this.max || v < this.min) {
+                    return 0.0;
+                }
+                return 1.0 * this.histogram[i] / this.width / this.ntups;
+            case GREATER_THAN:
+                if (v > this.max) {
+                    return 0.0;
+                }
+                if (v < this.min) {
+                    return 1.0;
+                }
+                long height = this.histogram[i];
+                double p1 = ((right - v) * 1.0 / width) * (height * 1.0 / ntups);
+                int allInRight = 0;
+                for (int j = i + 1; j < buckets; j++) {
+                    allInRight += histogram[j];
+                }
+                double p2 = allInRight * 1.0 / ntups;
+                return p1 + p2;
+            case NOT_EQUALS:
+                return 1.0 - this.estimateSelectivity(Predicate.Op.EQUALS, v);
+            case GREATER_THAN_OR_EQ:
+                return this.estimateSelectivity(Predicate.Op.EQUALS, v) + this.estimateSelectivity(Predicate.Op.GREATER_THAN, v);
+            case LESS_THAN:
+                return 1.0 - this.estimateSelectivity(Predicate.Op.GREATER_THAN_OR_EQ, v);
+            case LESS_THAN_OR_EQ:
+                return 1.0 - this.estimateSelectivity(Predicate.Op.GREATER_THAN, v);
+            case LIKE:
+                return this.avgSelectivity();
+            default:
+                throw new RuntimeException("Should not reach hear");
+        }
     }
 
     /**
@@ -62,10 +113,12 @@ public class IntHistogram {
      *     join optimization. It may be needed if you want to
      *     implement a more efficient optimization
      * */
-    public double avgSelectivity()
-    {
-        // some code goes here
-        return 1.0;
+    public double avgSelectivity() {
+        double sum = 0.0;
+        for (int i = 0; i < this.histogram.length; i++) {
+            sum = this.histogram[i];
+        }
+        return sum / this.buckets;
     }
 
     /**
