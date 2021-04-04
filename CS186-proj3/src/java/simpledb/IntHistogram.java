@@ -31,7 +31,7 @@ public class IntHistogram {
      */
     public IntHistogram(int buckets, int min, int max) {
         this.buckets = buckets;
-    	this.histogram = new long[this.buckets];
+    	this.histogram = new long[buckets];
         this.min = min;
         this.max = max;
         this.width = (int) Math.ceil((double)(max - min + 1) / this.buckets);
@@ -67,14 +67,16 @@ public class IntHistogram {
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
         int i = this.valueToIndex(v);
-        int left = i * width + min;
-        int right = left + width - 1;
+        long height = 0;
+        int left = i * this.width + this.min;
+        int right = left + this.width - 1;
         switch (op) {
             case EQUALS:
                 if (v > this.max || v < this.min) {
                     return 0.0;
                 }
-                return 1.0 * this.histogram[i] / this.width / this.ntups;
+                height = this.histogram[i];
+                return 1.0 * height / this.width / this.ntups;
             case GREATER_THAN:
                 if (v > this.max) {
                     return 0.0;
@@ -82,7 +84,7 @@ public class IntHistogram {
                 if (v < this.min) {
                     return 1.0;
                 }
-                long height = this.histogram[i];
+                height = this.histogram[i];
                 double p1 = ((right - v) * 1.0 / width) * (height * 1.0 / ntups);
                 int allInRight = 0;
                 for (int j = i + 1; j < buckets; j++) {
