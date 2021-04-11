@@ -243,9 +243,43 @@ public class JoinOptimizer {
         // See the project writeup for some hints as to how this function
         // should work.
 
-        // some code goes here
         //Replace the following
-        return joins;
+        // 1. j = set of join nodes
+        // 2. for (i in 1...|j|):  // First find best plan for single join, then for two joins, etc.
+        // 3.     for s in {all length i subsets of j} // Looking at a concrete subset of joins
+        // 4.       bestPlan = {}  // We want to find the best plan for this concrete subset
+        // 5.       for s' in {all length i-1 subsets of s}
+        // 6.            subplan = optjoin(s')  // Look-up in the cache the best query plan for s but with one relation missing
+        // 7.            plan = best way to join (s-s') to subplan // Now find the best plan to extend s' by one join to get s
+        // 8.            if (cost(plan) < cost(bestPlan))
+        // 9.               bestPlan = plan // Update the best plan for computing s
+        // 10.      optjoin(s) = bestPlan
+        // 11. return optjoin(j)
+
+        int numJoinNodes = joins.size();
+        PlanCache pc = new PlanCache();
+        Set<LogicalJoinNode> wholeSet = null;
+        for (int i = 1; i <= numJoinNodes; i++) {
+            Set<Set<LogicalJoinNode>> setOfSubset = this.enumerateSubsets(this.joins, i);
+            for (Set<LogicalJoinNode> s : setOfSubset) {
+                if (s.size() == numJoinNodes) {
+                    wholeSet = s;
+                }
+                Double bestCostSofar = Double.MAX_VALUE;
+                CostCard bestPlan = new CostCard();
+                for (LogicalJoinNode toRemove : s) {
+                    CostCard plan = computeCostAndCardOfSubplan(stats, filterSelectivities, toRemove, s, bestCostSofar, pc);
+                    if (plan != null) {
+                        bestCostSofar = plan.cost;
+                        bestPlan = plan;
+                    }
+                }
+                if (bestPlan.plan != null) {
+                    pc.addPlan(s, bestPlan.cost, bestPlan.card, bestPlan.plan);
+                }
+            }
+        }
+        return pc.getOrder(wholeSet);
     }
 
     // ===================== Private Methods =================================
