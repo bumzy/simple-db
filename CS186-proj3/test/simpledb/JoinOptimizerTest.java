@@ -95,25 +95,27 @@ public class JoinOptimizerTest extends SimpleDbTestBase {
         TransactionId tid = new TransactionId();
         JoinOptimizer jo;
         Parser p = new Parser();
+		String t1Alias = "t1";
+		String t2Alias = "t2";
 		jo = new JoinOptimizer(p.generateLogicalPlan(tid, "SELECT * FROM " + tableName1 + " t1, " + tableName2 + " t2 WHERE t1.c1 = t2.c2;"),
 											new Vector<LogicalJoinNode>());
 		// 1 join 2
-		LogicalJoinNode equalsJoinNode = new LogicalJoinNode(tableName1, tableName2, Integer.toString(1), Integer.toString(2), Predicate.Op.EQUALS);
+		LogicalJoinNode equalsJoinNode = new LogicalJoinNode(t1Alias, t2Alias, Integer.toString(1), Integer.toString(2), Predicate.Op.EQUALS);
 		checkJoinEstimateCosts(jo, equalsJoinNode);
 		// 2 join 1
 		jo = new JoinOptimizer(p.generateLogicalPlan(tid, "SELECT * FROM " + tableName1 + " t1, " + tableName2 + " t2 WHERE t1.c1 = t2.c2;"),
 				new Vector<LogicalJoinNode>());
-		equalsJoinNode = new LogicalJoinNode(tableName2, tableName1, Integer.toString(2), Integer.toString(1), Predicate.Op.EQUALS);
+		equalsJoinNode = new LogicalJoinNode(t2Alias, t1Alias, Integer.toString(2), Integer.toString(1), Predicate.Op.EQUALS);
 		checkJoinEstimateCosts(jo, equalsJoinNode);
 		// 1 join 1
 		jo = new JoinOptimizer(p.generateLogicalPlan(tid, "SELECT * FROM " + tableName1 + " t1, " + tableName1 + " t2 WHERE t1.c3 = t2.c4;"),
 				new Vector<LogicalJoinNode>());
-		equalsJoinNode = new LogicalJoinNode(tableName1, tableName1, Integer.toString(3), Integer.toString(4), Predicate.Op.EQUALS);
+		equalsJoinNode = new LogicalJoinNode(t1Alias, t1Alias, Integer.toString(3), Integer.toString(4), Predicate.Op.EQUALS);
 		checkJoinEstimateCosts(jo, equalsJoinNode);
 		// 2 join 2
 		jo = new JoinOptimizer(p.generateLogicalPlan(tid, "SELECT * FROM " + tableName2 + " t1, " + tableName2 + " t2 WHERE t1.c8 = t2.c7;"),
 				new Vector<LogicalJoinNode>());
-		equalsJoinNode = new LogicalJoinNode(tableName2, tableName2, Integer.toString(8), Integer.toString(7), Predicate.Op.EQUALS);
+		equalsJoinNode = new LogicalJoinNode(t2Alias, t2Alias, Integer.toString(8), Integer.toString(7), Predicate.Op.EQUALS);
 		checkJoinEstimateCosts(jo, equalsJoinNode);
 	}
 

@@ -111,7 +111,7 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic nested-loops
             // join.
-            int tableid = Database.getCatalog().getTableId(j.t1Alias);
+            int tableid = this.p.getTableId(j.t1Alias);
             TupleDesc td = Database.getCatalog().getTupleDesc(tableid);
             double numBlock = Math.ceil(1.0 * Join.BLOCK_SIZE / td.getSize());
             return cost1 + numBlock * cost2 + 1.0 * card1 * card2;
