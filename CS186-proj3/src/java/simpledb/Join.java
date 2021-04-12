@@ -9,7 +9,7 @@ import simpledb.Aggregator.Op;
 public class Join extends Operator {
 
     private static final long serialVersionUID = 1L;
-    public static int BLOCK_SIZE = 1024 * 1024;
+    public static int BLOCK_SIZE = 10 * 1024;
 
     private JoinPredicate p = null;
     private DbIterator[] children = null;
