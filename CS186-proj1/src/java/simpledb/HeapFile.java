@@ -73,6 +73,7 @@ public class HeapFile implements DbFile {
             rafile.seek(offset);
             rafile.read(data, 0, BufferPool.PAGE_SIZE);
             page = new HeapPage((HeapPageId) pid, data);
+            rafile.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
